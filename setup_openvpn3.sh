@@ -13,13 +13,13 @@ function install_openvpn3() {
 function import_config()
 {
     read -e -p 'Path to config.ovpn: ' ovpn
-    if [[ ! -f $(realpath $(eval echo ${ovpn})) ]]; then 
+    if [[ ! -f "$(eval echo ${ovpn})" ]]; then 
         echo -e '\033[31mNo such file\033[0m'
         exit 1
     fi
     echo
     echo -e '\033[33mImporting config file\033[0m'
-    openvpn3 config-import --config $(eval echo $ovpn) --name ${config} --persistent
+    openvpn3 config-import --config "$(eval echo ${ovpn})" --name ${config} --persistent
     echo
 }
 function openvpn_config_setup(){
@@ -50,6 +50,11 @@ function openvpn_config_setup(){
             case $yn in
             "Yes" )
                 old_conf=$(grep -oP '(?<=config\s)\w+' ~/.bash_aliases | head -1)
+                if [[ "${old_conf}" == "${config}" ]];then 
+                     echo -e  "\033[33mExisting config is identical to new one, aborting\033[0m"
+                     break
+                     ;;
+                fi
                 sed -i "s/${old_conf}/${config}/g" ~/.bash_aliases
                 echo -e "\033[33mThe function was updated\033[0m"
                 break
@@ -177,20 +182,18 @@ if [[ "${#args[@]}" -le 0 ]];then
     echo "Available switches are '[-i|--install] | [-u|--uninstall]'"
     exit 0
 fi
-for item in "${args[@]}"
-do
-    case $item in
-        "-i"|"--install")
-            if ! dpkg -l | grep openvpn3 > /dev/null; then 
-                install_openvpn3
-            fi
-            shift
-            openvpn_config_setup
-            ;;
-        "-u"|"--uninstall")
-            openvpn_cleanup
-            ;;
-        *)
-            echo "Available switches are '[-i|--install] | [-u|--uninstall]'"
-    esac
-done
+
+case "${args[1]}" in
+    "-i"|"--install")
+        if ! dpkg -l | grep openvpn3 > /dev/null; then 
+            install_openvpn3
+        fi
+        shift
+        openvpn_config_setup
+        ;;
+    "-u"|"--uninstall")
+        openvpn_cleanup
+        ;;
+    *)
+        echo "Available switches are '[-i|--install] | [-u|--uninstall]'"
+esac
