@@ -3,7 +3,7 @@
 function install_openvpn3() {
     sudo apt install apt-transport-https -y
     sudo curl -fsSL https://swupdate.openvpn.net/repos/openvpn-repo-pkg-key.pub | sudo apt-key add -
-    curl -fsSL https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-$(lsb_release -cs).list | sed 's/deb/deb [arch=amd64]/g' | sudo tee /etc/apt/sources.list.d/openvpn3.list > /dev/null
+    curl -fsSL "https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-$(lsb_release -cs).list" | sed 's/deb/deb [arch=amd64]/g' | sudo tee /etc/apt/sources.list.d/openvpn3.list > /dev/null
     sudo apt update
     sudo apt install openvpn3 -y
     echo 
@@ -12,19 +12,19 @@ function install_openvpn3() {
 
 function import_config()
 {
-    read -e -p 'Path to config.ovpn: ' ovpn
-    if [[ ! -f "$(eval echo ${ovpn})" ]]; then 
+    read -r -e -p 'Path to config.ovpn: ' ovpn
+    if [[ ! -f "$(eval echo "${ovpn}")" ]]; then
         echo -e '\033[31mNo such file\033[0m'
         exit 1
     fi
     echo
     echo -e '\033[33mImporting config file\033[0m'
-    openvpn3 config-import --config "$(eval echo ${ovpn})" --name ${config} --persistent
+    openvpn3 config-import --config "$(eval echo "${ovpn}")" --name "${config}" --persistent
     echo
 }
 function openvpn_config_setup(){
     local count=0
-    read -e -p 'Name your config: ' config
+    read -r -e -p 'Name your config: ' config
     if openvpn3 config-show --config "${config}" > /dev/null 2>&1; then
         echo -e "\033[34mThere is already a config with that name overwrite it?\033[0m"
             select yn in "Yes" "No"; do
@@ -53,7 +53,6 @@ function openvpn_config_setup(){
                 if [[ "${old_conf}" == "${config}" ]];then 
                      echo -e  "\033[33mExisting config is identical to new one, aborting\033[0m"
                      break
-                     ;;
                 fi
                 sed -i "s/${old_conf}/${config}/g" ~/.bash_aliases
                 echo -e "\033[33mThe function was updated\033[0m"
@@ -81,7 +80,7 @@ disco   disconnect from the vpn
 pause   pause the vpn session
 resume  resume the vpn session
 restart restart the vpn session
-log     get sssion logs
+log     get session logs
 status  get vpn sessions status
 list    list all vpn sessions
 clean   cleans inactive vpn sessions from buffer"
@@ -112,11 +111,11 @@ EOM
     fi
 
     if [[ ! -f /etc/bash_completion.d/vpn ]];then 
-        echo -e "\033[33mCreating bash complition\033[0m"
+        echo -e "\033[33mCreating bash completion\033[0m"
         sudo tee /etc/bash_completion.d/vpn <<< 'complete -W "help con disco pause resume restart log status list clean" vpn' > /dev/null
         echo
     else
-        echo -e "\033[31mBASH complition already exist will not overwrite\033[0m"
+        echo -e "\033[31mBASH completion already exist will not overwrite\033[0m"
         echo
         ((count=count+1))
     fi
@@ -126,7 +125,7 @@ EOM
     else
         echo 
         echo -e "\033[32m##############################################################################################"
-        echo -e "#                       Please Run '"exec $(basename $SHELL)"' to complete the operation                      #"
+        echo -e "#                       Please Run '"exec "$(basename "$SHELL")""' to complete the operation                      #"
         echo -e "#    Then you can now use vpn [help|con|disco|pause|resume|log|restart|status|list|clean]    #"
         echo -e "##############################################################################################\033[0m"
         echo
@@ -134,7 +133,8 @@ EOM
 }
 
 function openvpn_cleanup(){
-    local config=$(grep -oP '(?<=config\s)\w+' ~/.bash_aliases | head -1)
+    local config
+    config=$(grep -oP '(?<=config\s)\w+' ~/.bash_aliases | head -1)
     sed -i '/##DONT_REMOVE##/,/##DONT_REMOVE##/d' ~/.bash_aliases
     sudo rm /etc/bash_completion.d/vpn -f
     echo -e "\033[34mRemove saved openvpn config?\033[0m"
@@ -142,27 +142,29 @@ function openvpn_cleanup(){
     case $yn in
             "Yes" )
                 if [[ -z "${config}" ]]; then 
-                    configs=($(openvpn3 configs-list | sed -e '/-/d' -e '/\//d' -e '/\(Configuration path\|Imported\|Name\)/d' -e '/^$/d' | awk 'NF{NF-=1};1' | sed '/\s/d'))
+                    configs=()
+                    while IFS='' read -r line; do configs+=("$line"); done < <(openvpn3 configs-list | sed -e '/-/d' -e '/\//d' -e '/\(Configuration path\|Imported\|Name\)/d' -e '/^$/d' | awk 'NF{NF-=1};1' | sed '/\s/d')
+
                     case "${#configs[@]}" in
                     0)
                         echo -e "\033[31mNo configuration to remove\033[0m"
                         break 2
                         ;;
                     1)
-                        openvpn3 config-remove --config ${configs[0]} --force
+                        openvpn3 config-remove --config "${configs[0]}" --force
                         break 2
                         ;;
                     *)
                         echo
-                        echo -e "\033[34mCan't idenify config automaticlly pleas pick the right one\033[0m"
+                        echo -e "\033[34mCan't identify config automatically pleas pick the right one\033[0m"
                         select conf in "${configs[@]}"; do
-                            openvpn3 config-remove --config ${conf} --force
+                            openvpn3 config-remove --config "${conf}" --force
                             break 2
                         done
                         ;;
                     esac
                 else
-                    openvpn3 config-remove --config ${config} --force
+                    openvpn3 config-remove --config "${config}" --force
                     break 2
                 fi
                 ;;
@@ -172,7 +174,7 @@ function openvpn_cleanup(){
         esac
     done
     echo
-    echo -e "\033[32mPlease Run '"exec $(basename $SHELL)"' to complete the operation\033[0m"
+    echo -e "\033[32mPlease Run '"exec "$(basename "$SHELL")""' to complete the operation\033[0m"
     echo
 
 }
@@ -183,7 +185,7 @@ if [[ "${#args[@]}" -le 0 ]];then
     exit 0
 fi
 
-case "${args[1]}" in
+case "${args[0]}" in
     "-i"|"--install")
         if ! dpkg -l | grep openvpn3 > /dev/null; then 
             install_openvpn3
