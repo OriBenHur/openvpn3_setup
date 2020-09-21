@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 
+if [[ "$EUID" -eq 0 ]]
+  then echo "This script is not meant to be tun as root!"
+  exit 1
+fi
+
 function install_openvpn3() {
     sudo apt install apt-transport-https -y
     sudo curl -fsSL https://swupdate.openvpn.net/repos/openvpn-repo-pkg-key.pub | sudo apt-key add -
     curl -fsSL "https://swupdate.openvpn.net/community/openvpn3/repos/openvpn3-$(lsb_release -cs).list" | sed 's/deb/deb [arch=amd64]/g' | sudo tee /etc/apt/sources.list.d/openvpn3.list > /dev/null
     sudo apt update
     sudo apt install openvpn3 -y
-    echo 
+    echo
     echo
 }
 
@@ -50,7 +55,7 @@ function openvpn_config_setup(){
             case $yn in
             "Yes" )
                 old_conf=$(grep -oP '(?<=config\s)\w+' ~/.bash_aliases | head -1)
-                if [[ "${old_conf}" == "${config}" ]];then 
+                if [[ "${old_conf}" == "${config}" ]];then
                      echo -e  "\033[33mExisting config is identical to new one, aborting\033[0m"
                      break
                 fi
@@ -110,7 +115,7 @@ EOM
         sed -i "s/<USER_CONFIG_NAME>/${config}/g" ~/.bash_aliases
     fi
 
-    if [[ ! -f /etc/bash_completion.d/vpn ]];then 
+    if [[ ! -f /etc/bash_completion.d/vpn ]];then
         echo -e "\033[33mCreating bash completion\033[0m"
         sudo tee /etc/bash_completion.d/vpn <<< 'complete -W "help con disco pause resume restart log status list clean" vpn' > /dev/null
         echo
@@ -123,7 +128,7 @@ EOM
         echo -e "\033[31mNothing to do exiting\033[0m"
         exit 0
     else
-        echo 
+        echo
         echo -e "\033[32m##############################################################################################"
         echo -e "#                       Please Run '"exec "$(basename "$SHELL")""' to complete the operation                      #"
         echo -e "#    Then you can now use vpn [help|con|disco|pause|resume|log|restart|status|list|clean]    #"
@@ -141,7 +146,7 @@ function openvpn_cleanup(){
     select yn in "Yes" "No"; do
     case $yn in
             "Yes" )
-                if [[ -z "${config}" ]]; then 
+                if [[ -z "${config}" ]]; then
                     configs=()
                     while IFS='' read -r line; do configs+=("$line"); done < <(openvpn3 configs-list | sed -e '/-/d' -e '/\//d' -e '/\(Configuration path\|Imported\|Name\)/d' -e '/^$/d' | awk 'NF{NF-=1};1' | sed '/\s/d')
 
@@ -187,7 +192,7 @@ fi
 
 case "${args[0]}" in
     "-i"|"--install")
-        if ! dpkg -l | grep openvpn3 > /dev/null; then 
+        if ! dpkg -l | grep openvpn3 > /dev/null; then
             install_openvpn3
         fi
         shift
