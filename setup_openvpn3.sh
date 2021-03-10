@@ -34,7 +34,7 @@ function generate_config() {
 ##DONT_REMOVE##
     function vpn(){
         local help_options=("h" "help" "--help" "-h")
-        local valid_options=("con" "disco" "pause" "resume" "restart" "log" "status" "list" "clean")
+        local valid_options=("start" "stop" "pause" "resume" "restart" "log" "status" "list" "clean")
         local option="${1:-help}"
         local config="${2}"
         if [[ " ${help_options[@]} " =~ " ${option} " ]] || [[ ! " ${valid_options[@]} " =~ " ${option} "  ]]; then
@@ -42,8 +42,8 @@ function generate_config() {
             echo  -e "Usage: ${0} option [config]
 
 Options:
-    con [config]        connect to to vpn
-    disco [config]      disconnect from the vpn
+    start [config]      connect to vpn
+    stop [config]       disconnect from the vpn
     pause [config]      pause the vpn session
     resume [config]     resume the vpn session
     restart [config]    restart the vpn session
@@ -53,15 +53,15 @@ Options:
     clean               cleans inactive vpn sessions from buffer
 
 Examples:
-    vpn con john_doe    will use john_doe config to connect
-    vpn con             will use the default config
-    vpn disco john_doe  will disconnect the session associated with the john_doe config
-    vpn disco           will disconnect the session associated with the default config"
+    vpn start john_doe  will use john_doe config to connect
+    vpn start           will use the default config
+    vpn stop john_doe   will disconnect the session associated with the john_doe config
+    vpn stop            will disconnect the session associated with the default config"
 
 
-        elif [[ "${option}" == "con" ]]; then
+        elif [[ "${option}" == "start" ]]; then
                 command openvpn3 session-start --config ${config:-<USER_CONFIG_NAME>}
-        elif [[ "${option}" == "disco"  ]]; then
+        elif [[ "${option}" == "stop"  ]]; then
                 command openvpn3 session-manage --disconnect --config ${config:-<USER_CONFIG_NAME>}
         elif [[ "${option}" == "pause" ]]; then
                 command openvpn3 session-manage --pause --config ${config:-<USER_CONFIG_NAME>}
@@ -139,7 +139,7 @@ function openvpn_config_setup() {
 	if [[ ! -f /etc/bash_completion.d/vpn ]]; then
 		echo
 		echo -e "\033[33mCreating bash completion\033[0m"
-		sudo tee /etc/bash_completion.d/vpn <<<'complete -W "help con disco pause resume restart log status list clean" vpn' >/dev/null
+		sudo tee /etc/bash_completion.d/vpn <<<'complete -W "help start stop pause resume restart log status list clean" vpn' >/dev/null
 	else
 		echo -e "\033[31mBASH completion already exist will not overwrite\033[0m"
 		((count = count + 1))
@@ -151,7 +151,7 @@ function openvpn_config_setup() {
 		echo
 		echo -e "\033[32m#######################################################################################################"
 		echo -e "                           Please Run '"exec "$(basename "$SHELL")""' to complete the operation"
-		echo -e "    Then you can now use vpn {help|con|disco|pause|resume|log|restart|status|list|clean} [config]"
+		echo -e "    Then you can now use vpn {help|start|stop|pause|resume|log|restart|status|list|clean} [config]"
 		echo -e "#######################################################################################################\033[0m"
 		echo
 	fi
