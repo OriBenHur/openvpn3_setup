@@ -34,7 +34,7 @@ function generate_config() {
 ##DONT_REMOVE##
     function vpn(){
         local help_options=("h" "help" "--help" "-h")
-        local valid_options=("start" "stop" "pause" "resume" "restart" "log" "status" "list" "clean")
+        local valid_options=("start" "stop" "stop-all" "pause" "resume" "restart" "log" "status" "list" "clean")
         local option="${1:-help}"
         local config="${2}"
         if [[ " ${help_options[@]} " =~ " ${option} " ]] || [[ ! " ${valid_options[@]} " =~ " ${option} "  ]]; then
@@ -44,6 +44,7 @@ function generate_config() {
 Options:
     start [config]      connect to vpn
     stop [config]       disconnect from the vpn
+    stop-all            disconnect from all active vpn sessions
     pause [config]      pause the vpn session
     resume [config]     resume the vpn session
     restart [config]    restart the vpn session
@@ -63,6 +64,12 @@ Examples:
                 command openvpn3 session-start --config ${config:-<USER_CONFIG_NAME>}
         elif [[ "${option}" == "stop"  ]]; then
                 command openvpn3 session-manage --disconnect --config ${config:-<USER_CONFIG_NAME>}
+        elif [[ "${option}" == "stop-all" ]]; then
+                ACTIVE_SESSIONS=$(openvpn3 sessions-list | grep -i 'path' | awk '{p=index($0, ":");print $2}')
+                echo $ACTIVE_SESSIONS
+                for instance in $ACTIVE_SESSIONS; do
+                    openvpn3 session-manage --disconnect --session-path ${instance}
+                done
         elif [[ "${option}" == "pause" ]]; then
                 command openvpn3 session-manage --pause --config ${config:-<USER_CONFIG_NAME>}
         elif [[ "${option}" == "resume" ]]; then
@@ -139,7 +146,7 @@ function openvpn_config_setup() {
 	if [[ ! -f /etc/bash_completion.d/vpn ]]; then
 		echo
 		echo -e "\033[33mCreating bash completion\033[0m"
-		sudo tee /etc/bash_completion.d/vpn <<<'complete -W "help start stop pause resume restart log status list clean" vpn' >/dev/null
+		sudo tee /etc/bash_completion.d/vpn <<<'complete -W "help start stop stop-all pause resume restart log status list clean" vpn' >/dev/null
 	else
 		echo -e "\033[31mBASH completion already exist will not overwrite\033[0m"
 		((count = count + 1))
@@ -151,7 +158,7 @@ function openvpn_config_setup() {
 		echo
 		echo -e "\033[32m#######################################################################################################"
 		echo -e "                           Please Run '"exec "$(basename "$SHELL")""' to complete the operation"
-		echo -e "    Then you can now use vpn {help|start|stop|pause|resume|log|restart|status|list|clean} [config]"
+		echo -e "    Then you can now use vpn {help|start|stop|stop-all|pause|resume|log|restart|status|list|clean} [config]"
 		echo -e "#######################################################################################################\033[0m"
 		echo
 	fi
