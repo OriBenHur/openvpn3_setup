@@ -18,6 +18,7 @@ function install_openvpn3() {
 }
 
 function import_config() {
+  local config="${1}"
   read -r -e -p 'Path to config.ovpn: ' ovpn
   if [[ ! -f "$(eval echo "${ovpn}")" ]]; then
     echo -e '\033[31mNo such file\033[0m'
@@ -36,6 +37,7 @@ function generate_config() {
 }
 
 function openvpn_config_setup() {
+  local config
   local options="help start stop stop-all pause resume restart log status list clean"
   options_md5=$(echo "${options}" | md5sum)
   local count=0
@@ -51,7 +53,7 @@ function openvpn_config_setup() {
       case $yn in
       "Yes")
         openvpn3 config-remove --config "${config}" --force >/dev/null
-        import_config
+        import_config "${config}"
         break
         ;;
       "No")
@@ -60,7 +62,7 @@ function openvpn_config_setup() {
       esac
     done
   else
-    import_config
+    import_config "${config}"
   fi
 
   unset yn
