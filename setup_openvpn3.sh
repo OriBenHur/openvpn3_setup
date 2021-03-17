@@ -4,6 +4,10 @@ if [[ "$EUID" -eq 0 ]]; then
   echo "This script is not meant to be tun as root!"
   exit 1
 fi
+baseUrl="https://raw.githubusercontent.com/OriBenHur/openvpn3_setup/master"
+content=$(wget -qO- ${baseUrl}/function)
+
+options="help start stop stop-all pause resume restart log status list clean"
 
 function install_openvpn3() {
   set -euo pipefail
@@ -38,10 +42,8 @@ function generate_config() {
 
 function openvpn_config_setup() {
   local config
-  local options="help start stop stop-all pause resume restart log status list clean"
   options_md5=$(echo "${options}" | md5sum)
   local count=0
-  content=$(wget -qO- https://raw.githubusercontent.com/OriBenHur/openvpn3_setup/master/function)
   while [[ -z "${config}" ]]; do
     read -r -e -p 'Name your config: ' config
     [[ -z "${config}" ]] && echo "Config must be non empty, try again"
@@ -85,7 +87,7 @@ function openvpn_config_setup() {
     start="$((start - 1))"
     end=$(grep -n '##DONT_REMOVE##' ~/.bash_aliases | tail -1 | cut -f1 -d:)
     end="$((end + 1))"
-    orig_config=$(grep -oP '(?<=config\s\$\{config:-)\w+' ~/.bash_aliases | head -1)
+    orig_config=$(grep -oP '(?<=config:-)\w+' ~/.bash_aliases | head -1)
     func_md5=$(awk -v s="${start}" -v e="${end}" 'NR>s&&NR<e' ~/.bash_aliases | sed "s/${orig_config}/<USER_CONFIG_NAME>/g" | md5sum)
     func_content_md5=$(echo "${content}" | md5sum)
     if [[ "${func_md5}" == "${func_content_md5}" ]]; then
@@ -155,7 +157,7 @@ function openvpn_config_setup() {
 function openvpn_cleanup() {
   unset yn
   local config
-  config=$(grep -oP '(?<=config\s\$\{config:-)\w+' ~/.bash_aliases | head -1)
+  config=$(grep -oP '(?<=config:-)\w+' ~/.bash_aliases | head -1)
   sed -i '/##DONT_REMOVE##/,/##DONT_REMOVE##/d' ~/.bash_aliases
   sudo rm /etc/bash_completion.d/vpn -f
   echo -e "\033[34mRemove saved openvpn config?\033[0m"
