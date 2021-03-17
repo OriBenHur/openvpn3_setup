@@ -1,0 +1,56 @@
+##DONT_REMOVE##
+    function vpn(){
+        local help_options=("h" "help" "--help" "-h")
+        local valid_options=("start" "stop" "stop-all" "pause" "resume" "restart" "log" "status" "list" "clean")
+        local option="${1:-help}"
+        local config="${2}"
+        if [[ " ${help_options[@]} " =~ " ${option} " ]] || [[ ! " ${valid_options[@]} " =~ " ${option} "  ]]; then
+            [[ !  " ${help_options[@]} " =~ " ${option} " ]] && echo -e "\033[31m${option} is not a valid option\033[0m\n"
+            echo  -e "Usage: ${0} option [config]
+
+Options:
+    start [config]      connect to vpn
+    stop [config]       disconnect from the vpn
+    stop-all            disconnect from all active vpn sessions
+    pause [config]      pause the vpn session
+    resume [config]     resume the vpn session
+    restart [config]    restart the vpn session
+    log [config]        get session logs
+    status [config]     get vpn sessions status
+    list                list all vpn sessions
+    clean               cleans inactive vpn sessions from buffer
+
+Examples:
+    vpn start john_doe  will use john_doe config to connect
+    vpn start           will use the default config
+    vpn stop john_doe   will disconnect the session associated with the john_doe config
+    vpn stop            will disconnect the session associated with the default config"
+
+
+        elif [[ "${option}" == "start" ]]; then
+                command openvpn3 session-start --config ${config:-<USER_CONFIG_NAME>}
+        elif [[ "${option}" == "stop"  ]]; then
+                command openvpn3 session-manage --disconnect --config ${config:-<USER_CONFIG_NAME>}
+        elif [[ "${option}" == "stop-all" ]]; then
+                ACTIVE_SESSIONS=$(openvpn3 sessions-list | grep -i 'path' | awk '{p=index($0, ":");print $2}')
+                echo $ACTIVE_SESSIONS
+                for instance in $ACTIVE_SESSIONS; do
+                    openvpn3 session-manage --disconnect --session-path ${instance}
+                done
+        elif [[ "${option}" == "pause" ]]; then
+                command openvpn3 session-manage --pause --config ${config:-<USER_CONFIG_NAME>}
+        elif [[ "${option}" == "resume" ]]; then
+                command openvpn3 session-manage --resume --config ${config:-<USER_CONFIG_NAME>}
+        elif [[ "${option}" == "log" ]]; then
+                command openvpn3 log --log-level 6 --config ${config:-<USER_CONFIG_NAME>}
+        elif [[ "${option}" == "restart" ]]; then
+                command openvpn3 session-manage --restart --config ${config:-<USER_CONFIG_NAME>}
+        elif [[ "${option}" == "status" ]]; then
+                command openvpn3 session-stats --config ${config:-<USER_CONFIG_NAME>}
+        elif [[ "${option}" == list ]]; then
+                command openvpn3 sessions-list
+        elif [[ "${option}" == "clean" ]]; then
+                openvpn3 session-manage --cleanup
+        fi
+}
+##DONT_REMOVE##
