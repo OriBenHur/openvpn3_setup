@@ -8,6 +8,7 @@ Original  | New
 ------------- | -------------
 openvpn3 session-start --config \<CONFIG\>  | vpn start [config]
 command openvpn3 session-manage --disconnect --config \<CONFIG\> | vpn stop [config]
+None | vpn stop-all (see help for more info)
 openvpn3 session-manage --pause --config \<CONFIG\> | vpn pause [config]
 openvpn3 session-manage --resume --config \<CONFIG\> |  vpn resume [config]
 openvpn3 session-manage --restart --config \<CONFIG\> | vpn restart [config]
