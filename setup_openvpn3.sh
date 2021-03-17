@@ -154,6 +154,43 @@ function openvpn_config_setup() {
   fi
 }
 
+function openvpn_update() {
+  local config
+  local content_md5
+  local options_md5
+  content_md5=$(cut </etc/bash_completion.d/vpn -d \" -f2 | md5sum)
+  options_md5=$(echo "${options}" | md5sum)
+
+  if grep '##DONT_REMOVE##' ~/.bash_aliases >/dev/null; then
+    config=$(grep -oP '(?<=config:-)\w+' ~/.bash_aliases | head -1)
+    start=$(grep -n '##DONT_REMOVE##' ~/.bash_aliases | head -1 | cut -f1 -d:)
+    start="$((start - 1))"
+    end=$(grep -n '##DONT_REMOVE##' ~/.bash_aliases | tail -1 | cut -f1 -d:)
+    end="$((end + 1))"
+    func_md5=$(awk -v s="${start}" -v e="${end}" 'NR>s&&NR<e' ~/.bash_aliases | sed "s/${config}/<USER_CONFIG_NAME>/g" | md5sum)
+    func_content_md5=$(echo "${content}" | md5sum)
+    if [[ "${func_md5}" != "${func_content_md5}" ]];then
+      sed -i '/##DONT_REMOVE##/,/##DONT_REMOVE##/d' ~/.bash_aliases
+      generate_config "${config}" "${content}"
+      echo -e "\033[33mThe function was updated\033[0m"
+    else
+      echo -e "\033[31mThe function is the newest... nothing to do\033[0m"
+    fi
+  else
+    echo -e "\033[31mVPN function doesn't exist run please run
+    bash <(wget -qO- ${baseUrl}/setup_openvpn3.sh) -i\033[0m"
+    exit 0
+  fi
+  if [[ "${content_md5}" != "${options_md5}" ]]; then
+    echo -e "\033[33mUpdating bash completion\033[0m"
+    sudo tee /etc/bash_completion.d/vpn <<<"complete -W \"${options}\" vpn" >/dev/null
+    echo -e "\033[33mBASH completion was update\033[0m"
+  else
+    echo -e "\033[31mBASH completion is the newest... nothing to do\033[0m"
+  fi
+
+}
+
 function openvpn_cleanup() {
   unset yn
   local config
@@ -203,7 +240,7 @@ function openvpn_cleanup() {
 
 args=("$@")
 if [[ "${#args[@]}" -le 0 ]]; then
-  echo "Available switches are '[-i|--install] | [-u|--uninstall]'"
+  echo "Available switches are '[-i|--install] | [-d|--uninstall] | [-u|--update]'"
   exit 0
 fi
 
@@ -215,10 +252,13 @@ case "${args[0]}" in
   shift
   openvpn_config_setup
   ;;
-"-u" | "--uninstall")
+"-d" | "--uninstall")
   openvpn_cleanup
   ;;
+"-u" | "--update")
+  openvpn_update
+  ;;
 *)
-  echo "Available switches are '[-i|--install] | [-u|--uninstall]'"
+  echo "Available switches are '[-i|--install] | [-d|--uninstall] | [-u|--update]'"
   ;;
 esac
