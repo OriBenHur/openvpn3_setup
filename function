@@ -4,6 +4,7 @@
         local valid_options=("start" "stop" "stop-all" "pause" "resume" "restart" "log" "status" "list" "clean")
         local option="${1:-help}"
         local config="${2}"
+        unset ACTIVE_SESSIONS
         if [[ ${help_options[*]} =~ ${option} ]] || [[ ! ${valid_options[*]} =~ ${option} ]]; then
             [[ !  ${help_options[*]} =~ ${option} ]] && echo -e "\033[31m${option} is not a valid option\033[0m\n"
             echo  -e "Usage: ${0} option [config]
@@ -32,11 +33,12 @@ Examples:
         elif [[ "${option}" == "stop"  ]]; then
                 command openvpn3 session-manage --disconnect --config "${config:-<USER_CONFIG_NAME>}"
         elif [[ "${option}" == "stop-all" ]]; then
-                ACTIVE_SESSIONS=$(openvpn3 sessions-list | grep -i 'path' | awk '{p=index($0, ":");print $2}')
-                echo "${ACTIVE_SESSIONS}"
-                for instance in $ACTIVE_SESSIONS; do
-                    openvpn3 session-manage --disconnect --session-path "${instance}"
-                done
+		      while IFS=' ' read -r line; do ACTIVE_SESSIONS+=("$line"); done < <(openvpn3 sessions-list | grep -Poi '(?<=path: )\S+')
+              for instance in "${ACTIVE_SESSIONS[@]}"; do
+			      [[ -z "${instance}" ]] && continue
+				  echo "${instance}"
+				  command openvpn3 session-manage --disconnect --session-path "${instance}"
+	          done
         elif [[ "${option}" == "pause" ]]; then
                 command openvpn3 session-manage --pause --config "${config:-<USER_CONFIG_NAME>}"
         elif [[ "${option}" == "resume" ]]; then
