@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [[ "$EUID" -eq 0 ]]; then
-  echo "This script is not meant to be tun as root!"
+  echo "This script is not meant to be run as root!"
   exit 1
 fi
 baseUrl="https://raw.githubusercontent.com/OriBenHur/openvpn3_setup/master"
@@ -23,6 +23,7 @@ function install_openvpn3() {
 
 function import_config() {
   local config="${1}"
+  local ovpn
   read -r -e -p 'Path to config.ovpn: ' ovpn
   if [[ ! -f "$(eval echo "${ovpn}")" ]]; then
     echo -e '\033[31mNo such file\033[0m'
@@ -42,8 +43,11 @@ function generate_config() {
 
 function openvpn_config_setup() {
   local config
-  options_md5=$(echo "${options}" | md5sum)
+  local options_md5
+  local content_md5
+  local orig_config
   local count=0
+  options_md5=$(echo "${options}" | md5sum)
   while [[ -z "${config}" ]]; do
     read -r -e -p 'Name your config: ' config
     [[ -z "${config}" ]] && echo "Config must be non empty, try again"
@@ -194,6 +198,9 @@ function openvpn_update() {
 function openvpn_cleanup() {
   unset yn
   local config
+  local configs
+  local line
+
   config=$(grep -oP '(?<=config:-)\w+' ~/.bash_aliases | head -1)
   sed -i '/##DONT_REMOVE##/,/##DONT_REMOVE##/d' ~/.bash_aliases
   sudo rm /etc/bash_completion.d/vpn -f
